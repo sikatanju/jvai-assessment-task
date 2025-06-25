@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator
 from uuid import uuid4
 
 # Create your models here.
-class Cateogry(models.Model):
+class Category(models.Model):
     title = models.CharField(max_length=255)
 
     def __str__(self) -> str:
@@ -20,7 +20,7 @@ class Product(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     # category is used to categorized products.
     category = models.ForeignKey(
-        Cateogry, on_delete=models.PROTECT, related_name='products')
+        Category, on_delete=models.PROTECT, related_name='products')
     
     def __str__(self) -> str:
         return self.title
