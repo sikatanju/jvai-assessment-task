@@ -1,17 +1,14 @@
 from jvai.settings import STRIPE_API_KEY
 
 import stripe
-from django.shortcuts import redirect
-from django.http.response import HttpResponse
 
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter 
+from rest_framework.filters import SearchFilter 
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework import status
 
 from .models import Product, Category, Cart, CartItem, Order, ProductImage
@@ -65,42 +62,46 @@ class CartItemViewSet(ModelViewSet):
     def get_queryset(self):
         return CartItem.objects.filter(cart_id=self.kwargs['cart_pk']).select_related('product')
 
-
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def place_order(request, cart_id):
-    try:
-        cart= Cart.objects.get(id=cart_id)
-    except Cart.DoesNotExist():
-        return Response({"error": "Cart Does not exists"}, status=status.HTTP_400_BAD_REQUEST)
+def place_order(request):
+    if str(request.user) != 'AnonymousUser':
+        cart_id = request.data.get('cart_id', '')
+        try:
+            cart= Cart.objects.get(id=cart_id)
+        except Cart.DoesNotExist():
+            return Response({"error": "Cart Does not exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if cart.items.count() == 0:
-        return HttpResponse("No item in the cart")
+        if cart.items.count() == 0:
+            return Response({"message": "No item in the cart, kindly add at least one item to place an order."}, status=status.HTTP_400_BAD_REQUEST)
 
-    customer = UserProfile.objects.get(user=request.user)
-    cart_items = cart.items.all()
-    total_price = sum([item.quantity * item.product.unit_price for item in cart_items])
-    order = Order.objects.create(customer=customer, total_amount=total_price)
-    try:
-        session = stripe.checkout.Session.create(
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'unit_amount': int(total_price*100),
-                    'product_data': {
-                        'name': f'Order_ID: {order.id}'
-                    }
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=f'http://localhost:8000/jvai/payment/success?order_id={order.id}&cart_id={cart_id}',
-            cancel_url=f'http://localhost:8000/jvai/payment/cancel?order_id={order.id}'
-        )
-    except Exception as e:
-        print(str(e))
-        return HttpResponse("Exception occurred")
-    
-    return redirect(session.url, code=303)
+        customer = UserProfile.objects.get(user=request.user)
+        cart_items = cart.items.all()
+        total_price = sum([item.quantity * item.product.unit_price for item in cart_items])
+        order = Order.objects.create(customer=customer, total_amount=total_price)
+        try:
+            session = stripe.checkout.Session.create(
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'unit_amount': int(total_price*100),
+                        'product_data': {
+                            'name': f'Order_ID: {order.id}'
+                        }
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=f'http://localhost:8000/store/payment/success?order_id={order.id}&cart_id={cart_id}',
+                cancel_url=f'http://localhost:8000/store/payment/cancel?order_id={order.id}'
+            )
+        except Exception as e:
+            print(str(e))
+            return Response({'error': "Exception occurred"}, status=status.HTTP_400_BAD_REQUEST)
+        data = { 'stripe_session': session.url }
+        return Response({'stripe': data})
+    else:
+        return Response({'error': "Please provide authentication credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['GET'])
@@ -132,6 +133,8 @@ def payment_cancel(request):
 
 
 class ProductImageViewSet(ModelViewSet):
+    permission_classes = [IsAdminOrReadOnly]
+    
     def get_queryset(self):
         return ProductImage.objects.filter(product_id=self.kwargs['product_pk'])
     

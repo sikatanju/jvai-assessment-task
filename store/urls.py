@@ -18,7 +18,7 @@ carts_router = routers.NestedDefaultRouter(router, 'carts', lookup='cart')
 carts_router.register('items', views.CartItemViewSet, basename='cart-items')
 
 urlpatterns = [
-    path('order/<str:cart_id>/', views.place_order),
+    path('order/', views.place_order),
     path('payment/success', views.payment_success, name='payment_success'),
     path('payment/cancel', views.payment_cancel),
 ]
