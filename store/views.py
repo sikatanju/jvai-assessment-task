@@ -11,13 +11,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import Product, Category, Cart, CartItem, Order, ProductImage
+from .models import Product, Category, Cart, CartItem, Order, ProductImage, Review
 from core.models import UserProfile
 from .filters import ProductFilter
 from .pagination import ProductPagination
 from .permissions import IsAdminOrReadOnly
 from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer, \
-    ProductImageSerializer, CreateProductImageSerializer
+    ProductImageSerializer, CreateProductImageSerializer, ReviewSerializer
 
 stripe.api_key=STRIPE_API_KEY
 
@@ -143,6 +143,16 @@ class ProductImageViewSet(ModelViewSet):
             return CreateProductImageSerializer
         
         return ProductImageSerializer
+
+    def get_serializer_context(self):
+        return {'product_id': self.kwargs['product_pk']}
+
+
+class ReviewViewSet(ModelViewSet):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(product_id=self.kwargs['product_pk'])
 
     def get_serializer_context(self):
         return {'product_id': self.kwargs['product_pk']}
