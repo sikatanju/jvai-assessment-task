@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 import cloudinary.uploader
 
-from .models import Product, Category, Cart, CartItem, Order, ProductImage
+from .models import Product, Category, Cart, CartItem, Order, ProductImage, Review
 from core.models import UserProfile
 
 
@@ -118,4 +118,13 @@ class CreateProductImageSerializer(serializers.ModelSerializer):
         result = cloudinary.uploader.upload(image)
         return ProductImage.objects.create(product_id=self.context['product_id'], image_url=result['secure_url'], public_id=result['public_id'])
 
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'date', 'name', 'description']
+
+    def create(self, validated_data):
+        product_id = self.context['product_id']
+        return Review.objects.create(product_id=product_id, **validated_data)
 
