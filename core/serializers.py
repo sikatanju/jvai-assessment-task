@@ -3,9 +3,10 @@ from rest_framework import serializers
 from .models import UserProfile, User
 
 
-class UserSerializer(serializers.Serializer):
-    email=serializers.EmailField()
-    username=serializers.CharField()
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username']
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()

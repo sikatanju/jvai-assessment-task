@@ -1,6 +1,3 @@
-from django.http.response import HttpResponse
-from django.shortcuts import render
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -8,7 +5,6 @@ from rest_framework import status
 
 from .models import UserProfile, User
 from .serializers import UserProfileSerializer, UserRegisterSerializer
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -42,5 +38,6 @@ def user_activate(request):
             return Response({"message": "Wrong activation link"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"message": "Account activated successfully"})
+
 
 
