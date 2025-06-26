@@ -1,7 +1,9 @@
+from django.conf import settings
 from rest_framework import serializers
-from django.db import transaction
 
-from .models import Product, Category, Cart, CartItem, Order
+import cloudinary.uploader
+
+from .models import Product, Category, Cart, CartItem, Order, ProductImage
 from core.models import UserProfile
 
 
@@ -11,10 +13,17 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'title']
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image_url', 'public_id']
+
+
 class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
     class Meta:
         model = Product
-        fields = ['id', 'title', 'description', 'slug', 'unit_price', 'inventory', 'category']
+        fields = ['id', 'title', 'description', 'slug', 'unit_price', 'inventory', 'category', 'images']
 
 
 # This serializer is used to show limited product details for CartItem
@@ -85,8 +94,28 @@ class UpdateCartItemSerializer(serializers.ModelSerializer):
         fields = ['quantity']
 
 
-
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'customer', 'placed_at', 'payment_status', 'items']
+
+
+class CreateProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(write_only=True)
+    image_url = serializers.CharField(read_only=True)
+    public_id=serializers.CharField(read_only=True)
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'image_url', 'public_id']
+
+    def create(self, validated_data):
+        image = validated_data.pop('image')
+        cloudinary.config(
+            cloud_name = settings.CLOUDINARY_CLOUD_NAME,
+            api_key = settings.CLOUDINARY_API_KEY,
+            api_secret = settings.CLOUDINARY_API_SECRET,
+        )
+        result = cloudinary.uploader.upload(image)
+        return ProductImage.objects.create(product_id=self.context['product_id'], image_url=result['secure_url'], public_id=result['public_id'])
+
+

@@ -14,12 +14,13 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import status
 
-from .models import Product, Category, Cart, CartItem, Order
+from .models import Product, Category, Cart, CartItem, Order, ProductImage
 from core.models import UserProfile
-from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer
 from .filters import ProductFilter
 from .pagination import ProductPagination
 from .permissions import IsAdminOrReadOnly
+from .serializers import ProductSerializer, CategorySerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer, \
+    ProductImageSerializer, CreateProductImageSerializer
 
 stripe.api_key=STRIPE_API_KEY
 
@@ -128,3 +129,17 @@ def payment_cancel(request):
 
     #Currently no retrying to pay for an order exists...
     return Response({"message": "Payment Cancelled for order no.{order_id}"})
+
+
+class ProductImageViewSet(ModelViewSet):
+    def get_queryset(self):
+        return ProductImage.objects.filter(product_id=self.kwargs['product_pk'])
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateProductImageSerializer
+        
+        return ProductImageSerializer
+
+    def get_serializer_context(self):
+        return {'product_id': self.kwargs['product_pk']}

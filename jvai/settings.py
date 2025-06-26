@@ -127,6 +127,10 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 STRIPE_API_KEY=env("stripe_api_key", '')
 
+CLOUDINARY_CLOUD_NAME=env("cloudinary_cloud_name", '')
+CLOUDINARY_API_KEY=env("cloudinary_api_key", '')
+CLOUDINARY_API_SECRET=env("cloudinary_api_secret", '')
+CLOUDINARY_API_ENVIRONMENT_VARIABLE=env("cloudinary_api_environ_variable", '')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

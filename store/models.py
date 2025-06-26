@@ -60,3 +60,11 @@ class Order(models.Model):
     placed_at = models.DateTimeField(auto_now_add=True)
     customer = models.ForeignKey(UserProfile, on_delete=models.PROTECT)
     total_amount = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+
+class ProductImage(models.Model):
+    image_url = models.URLField(blank=True, null=True)  
+    public_id = models.CharField(max_length=255, blank=True, null=True)  
+    
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+    created_at = models.DateTimeField(auto_now_add=True)
