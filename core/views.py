@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 
 from .models import UserProfile, User
 from .serializers import UserProfileSerializer, UserRegisterSerializer
@@ -18,26 +19,36 @@ def user_register(request):
     if request.method == 'POST':
         user_serializer = UserRegisterSerializer(data=request.data)
         if user_serializer.is_valid():
-            user_serializer.save()  
-            return Response(user_serializer.data, status=status.HTTP_200_OK)
+            user = user_serializer.save(is_active=False)
+            user.save()
+            return Response({"message": "User successfully created, check your email (console) to activate your account."}, status=status.HTTP_201_CREATED)
         
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "error occurred, try again later"}, status=status.HTTP_400_BAD_REQUEST)
     
 
 @api_view(['GET'])
 def user_activate(request):
     email = request.GET.get('email')
-    if email:
+    token = request.GET.get('token')
+    if email and token:
         try:
             user = User.objects.get(email=email)
-            if not user.is_active:
+            try:
+                token_old = Token.objects.filter(user=user).values('key').first()
+            except Token.DoesNotExist():
+                return Response({"message": "Wrong activation link"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not user.is_active and token == token_old['key']:
                 user.is_active = True
                 user.save()
-
+                return Response({"message": "Account activated successfully."}, status=status.HTTP_202_ACCEPTED)
+            elif user.is_active:
+                return Response({"message": "Account already activated."}, status=status.HTTP_200_OK)
+            
         except User.DoesNotExist():
             return Response({"message": "Wrong activation link"}, status=status.HTTP_400_BAD_REQUEST)
-
-    return Response({"message": "Account activated successfully"})
-
+        
+        
+    return Response({"error": "Invalid activation link."}, status=status.HTTP_400_BAD_REQUEST)
 
 
